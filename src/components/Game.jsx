@@ -1,4 +1,12 @@
+import { useEffect, useState } from "react"
+
 export default function Game({ user }) {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    setIsMobile(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent))
+  }, [])
+
   return (
     <section id="juego" className="min-h-screen flex flex-col items-center justify-center px-4 py-20">
       <h2 className="text-3xl font-bold text-green-300 mb-4">🎮 El Recorrido</h2>
@@ -10,6 +18,24 @@ export default function Game({ user }) {
         <div className="bg-green-900/50 p-8 rounded-2xl text-center">
           <p className="text-green-300 text-lg">🔒 Inicia sesión para jugar</p>
         </div>
+      ) : isMobile ? (
+        <div className="bg-green-900/50 p-8 rounded-2xl text-center max-w-md">
+          <p className="text-4xl mb-4">📱</p>
+          <p className="text-green-300 text-lg font-bold mb-2">Experiencia de escritorio</p>
+          <p className="text-green-100 text-sm mb-6">
+            El recorrido 3D requiere un computador para funcionar correctamente. 
+            En móvil puedes jugarlo directamente en itch.io.
+          </p>
+          
+          <a
+            href="https://michael-gonzalez.itch.io/humedalwebgl-proyecto"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-green-600 hover:bg-green-500 px-6 py-3 rounded-xl font-bold text-white inline-block"
+          >
+            🌿 Jugar en itch.io
+          </a>
+        </div>
       ) : (
         <div className="w-full max-w-5xl">
           <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
@@ -18,7 +44,7 @@ export default function Game({ user }) {
               className="absolute top-0 left-0 w-full h-full rounded-2xl border-2 border-green-700"
               allowFullScreen
               allow="autoplay; fullscreen *; pointer-lock *; encrypted-media;"
-              frameBorder="0"
+              style={{ border: 0 }}
             />
           </div>
           <p className="text-green-400 text-sm text-center mt-3">
