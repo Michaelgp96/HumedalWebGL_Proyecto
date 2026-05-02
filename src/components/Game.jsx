@@ -14,37 +14,16 @@ export default function Game({ user }) {
         <div className="w-full max-w-5xl">
           <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
             <iframe
-              src="/Build/index.html"
+              src="https://itch.io/embed-upload/4534010?color=1a3a2a"
               className="absolute top-0 left-0 w-full h-full rounded-2xl border-2 border-green-700"
               allowFullScreen
+              allow="autoplay; fullscreen *; pointer-lock *; encrypted-media;"
+              frameBorder="0"
             />
           </div>
-          <div className="flex justify-center gap-4 mt-6 flex-wrap">
-            <button
-              onPointerDown={() => window.unityInstance?.SendMessage('PlayerController', 'MobileForward', '1')}
-              onPointerUp={() => window.unityInstance?.SendMessage('PlayerController', 'MobileForward', '0')}
-              className="bg-green-700 hover:bg-green-600 px-6 py-3 rounded-xl font-bold text-2xl"
-            >▲</button>
-            <button
-              onPointerDown={() => window.unityInstance?.SendMessage('PlayerController', 'MobileBack', '1')}
-              onPointerUp={() => window.unityInstance?.SendMessage('PlayerController', 'MobileBack', '0')}
-              className="bg-green-700 hover:bg-green-600 px-6 py-3 rounded-xl font-bold text-2xl"
-            >▼</button>
-            <button
-              onPointerDown={() => window.unityInstance?.SendMessage('PlayerController', 'MobileLeft', '1')}
-              onPointerUp={() => window.unityInstance?.SendMessage('PlayerController', 'MobileLeft', '0')}
-              className="bg-green-700 hover:bg-green-600 px-6 py-3 rounded-xl font-bold text-2xl"
-            >◀</button>
-            <button
-              onPointerDown={() => window.unityInstance?.SendMessage('PlayerController', 'MobileRight', '1')}
-              onPointerUp={() => window.unityInstance?.SendMessage('PlayerController', 'MobileRight', '0')}
-              className="bg-green-700 hover:bg-green-600 px-6 py-3 rounded-xl font-bold text-2xl"
-            >▶</button>
-            <button
-              onClick={() => window.unityInstance?.SendMessage('GrabObject', 'PressE')}
-              className="bg-yellow-600 hover:bg-yellow-500 px-6 py-3 rounded-xl font-bold"
-            >🤚 Depositar</button>
-          </div>
+          <p className="text-green-400 text-sm text-center mt-3">
+            💡 Haz clic en el juego para activar los controles. WASD para moverte, mouse para girar.
+          </p>
         </div>
       )}
     </section>
