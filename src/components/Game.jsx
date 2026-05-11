@@ -1,7 +1,102 @@
+import { useEffect, useState } from 'react';
+import { supabase } from '../supabaseClient';
+
 export default function Game({ user }) {
-  // 👇 PEGA AQUÍ LA URL DE TU IMAGEN DEL HUMEDAL
   const IMAGEN_HUMEDAL = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2000"
-  // Ejemplo: "https://tuimagen.com/humedal-techo.jpg"
+  
+  // Estados
+  const [startTime, setStartTime] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [completedGames, setCompletedGames] = useState([]);
+  const [showControls, setShowControls] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Inicializar timer y detectar móvil
+  useEffect(() => {
+    setStartTime(Date.now());
+    const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    setIsMobile(mobile);
+    
+    // Actualizar timer cada segundo
+    const interval = setInterval(() => {
+      if (startTime) {
+        setElapsedTime(Date.now() - startTime);
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [startTime]);
+
+  // Configurar receptor de puntajes Unity
+  useEffect(() => {
+    if (!user) return;
+    
+    window.recibirPuntajeUnity = async (mensaje) => {
+      try {
+        const [puntaje, minijuego] = mensaje.split('|');
+        const score = parseInt(puntaje);
+        
+        // Agregar a completados
+        const nuevoJuego = { minigame: minijuego, score: score };
+        const nuevosCompletados = [...completedGames, nuevoJuego];
+        setCompletedGames(nuevosCompletados);
+        
+        // Si completó ambos minijuegos
+        if (nuevosCompletados.length === 2) {
+          const tiempoTotal = Math.floor((Date.now() - startTime) / 1000);
+          
+          // Guardar ambos puntajes con tiempo total
+          for (const juego of nuevosCompletados) {
+            await supabase
+              .from('scores')
+              .insert({
+                email: user.email,
+                score: juego.score,
+                minigame: juego.minigame,
+                time_seconds: tiempoTotal,
+                created_at: new Date().toISOString()
+              });
+          }
+          
+          const mins = Math.floor(tiempoTotal / 60);
+          const secs = tiempoTotal % 60;
+          alert(`🎉 ¡Recorrido completo!\n\nTiempo total: ${mins}m ${secs}s`);
+        } else {
+          alert(`✅ ${minijuego} completado: ${score} puntos`);
+        }
+      } catch (err) {
+        console.error('Error guardando puntaje:', err);
+      }
+    };
+    
+    return () => {
+      delete window.recibirPuntajeUnity;
+    };
+  }, [user, startTime, completedGames]);
+
+  // Simular tecla WASD
+  const simulateKey = (key, action) => {
+    const iframe = document.querySelector('.game-iframe');
+    if (!iframe || !iframe.contentWindow) return;
+    
+    const event = new KeyboardEvent(action, {
+      key: key,
+      code: `Key${key.toUpperCase()}`,
+      keyCode: key.charCodeAt(0),
+      which: key.charCodeAt(0),
+      bubbles: true
+    });
+    
+    iframe.contentWindow.document.dispatchEvent(event);
+  };
+
+  // Formatear tiempo
+  const formatTime = (ms) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <>
@@ -15,7 +110,6 @@ export default function Game({ user }) {
           background: #f5f0e8;
         }
 
-        /* Postal hero with background image */
         .game-hero {
           position: relative;
           min-height: 60vh;
@@ -110,13 +204,91 @@ export default function Game({ user }) {
           letter-spacing: 0.5px;
         }
 
-        /* Game iframe container */
         .game-container {
           padding: 60px 24px;
           max-width: 1200px;
           margin: 0 auto;
           width: 100%;
+          position: relative;
         }
+
+        /* Timer y controles en esquinas */
+        .game-timer {
+          position: fixed;
+          top: 100px;
+          left: 20px;
+          background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%);
+          color: white;
+          padding: 12px 20px;
+          border-radius: 50px;
+          font-family: 'Poppins', sans-serif;
+          font-weight: 700;
+          font-size: 18px;
+          box-shadow: 0 4px 12px rgba(27,94,32,0.3);
+          z-index: 1000;
+        }
+
+        .controls-toggle {
+          position: fixed;
+          top: 100px;
+          right: 20px;
+          background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
+          color: white;
+          border: none;
+          padding: 12px 24px;
+          border-radius: 50px;
+          font-family: 'Poppins', sans-serif;
+          font-weight: 700;
+          font-size: 16px;
+          cursor: pointer;
+          box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+          transition: all 0.2s;
+          z-index: 1000;
+        }
+
+        .controls-toggle:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(76,175,80,0.4);
+        }
+
+        /* Controles WASD virtuales */
+        .virtual-controls {
+          position: fixed;
+          bottom: 40px;
+          left: 40px;
+          display: grid;
+          grid-template-columns: repeat(3, 70px);
+          grid-template-rows: repeat(2, 70px);
+          gap: 8px;
+          z-index: 1000;
+        }
+
+        .control-btn {
+          background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%);
+          border: 3px solid #1b5e20;
+          border-radius: 16px;
+          color: white;
+          font-size: 28px;
+          font-weight: 700;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 12px rgba(27,94,32,0.3);
+          transition: all 0.1s;
+          user-select: none;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .control-btn:active {
+          transform: scale(0.95);
+          box-shadow: 0 2px 8px rgba(27,94,32,0.4);
+        }
+
+        .control-btn.w { grid-column: 2; grid-row: 1; }
+        .control-btn.a { grid-column: 1; grid-row: 2; }
+        .control-btn.s { grid-column: 2; grid-row: 2; }
+        .control-btn.d { grid-column: 3; grid-row: 2; }
 
         .game-instructions {
           text-align: center;
@@ -139,6 +311,15 @@ export default function Game({ user }) {
           max-width: 600px;
           margin: 0 auto;
           line-height: 1.6;
+        }
+
+        .progress-indicator {
+          text-align: center;
+          margin-bottom: 20px;
+          font-family: 'Poppins', sans-serif;
+          font-size: 16px;
+          color: #4caf50;
+          font-weight: 600;
         }
 
         .iframe-wrapper {
@@ -169,7 +350,6 @@ export default function Game({ user }) {
           margin-top: 16px;
         }
 
-        /* Login gate */
         .login-gate {
           min-height: 60vh;
           display: flex;
@@ -246,6 +426,32 @@ export default function Game({ user }) {
             padding: 40px 16px;
           }
 
+          .game-timer {
+            top: 80px;
+            left: 12px;
+            font-size: 16px;
+            padding: 10px 16px;
+          }
+
+          .controls-toggle {
+            top: 80px;
+            right: 12px;
+            padding: 10px 20px;
+            font-size: 14px;
+          }
+
+          .virtual-controls {
+            bottom: 20px;
+            left: 20px;
+            grid-template-columns: repeat(3, 60px);
+            grid-template-rows: repeat(2, 60px);
+            gap: 6px;
+          }
+
+          .control-btn {
+            font-size: 24px;
+          }
+
           .gate-card {
             padding: 36px 24px;
           }
@@ -253,7 +459,6 @@ export default function Game({ user }) {
       `}</style>
 
       <section id="juego" className="game-section">
-        {/* Hero postal con imagen de fondo */}
         <div className="game-hero">
           <div className="hero-content">
             <span className="game-icon">🎮</span>
@@ -282,7 +487,6 @@ export default function Game({ user }) {
           </div>
         </div>
 
-        {/* Contenedor del juego */}
         {!user ? (
           <div className="login-gate">
             <div className="gate-card">
@@ -296,12 +500,73 @@ export default function Game({ user }) {
           </div>
         ) : (
           <div className="game-container">
+            {/* Timer */}
+            <div className="game-timer">
+              ⏱️ {formatTime(elapsedTime)}
+            </div>
+
+            {/* Toggle controles */}
+            <button 
+              className="controls-toggle"
+              onClick={() => setShowControls(!showControls)}
+            >
+              🎮 {showControls ? 'Ocultar' : 'Controles'}
+            </button>
+
+            {/* Controles WASD virtuales */}
+            {showControls && (
+              <div className="virtual-controls">
+                <button 
+                  className="control-btn w"
+                  onTouchStart={() => simulateKey('w', 'keydown')}
+                  onTouchEnd={() => simulateKey('w', 'keyup')}
+                  onMouseDown={() => simulateKey('w', 'keydown')}
+                  onMouseUp={() => simulateKey('w', 'keyup')}
+                >
+                  ▲
+                </button>
+                <button 
+                  className="control-btn a"
+                  onTouchStart={() => simulateKey('a', 'keydown')}
+                  onTouchEnd={() => simulateKey('a', 'keyup')}
+                  onMouseDown={() => simulateKey('a', 'keydown')}
+                  onMouseUp={() => simulateKey('a', 'keyup')}
+                >
+                  ◀
+                </button>
+                <button 
+                  className="control-btn s"
+                  onTouchStart={() => simulateKey('s', 'keydown')}
+                  onTouchEnd={() => simulateKey('s', 'keyup')}
+                  onMouseDown={() => simulateKey('s', 'keydown')}
+                  onMouseUp={() => simulateKey('s', 'keyup')}
+                >
+                  ▼
+                </button>
+                <button 
+                  className="control-btn d"
+                  onTouchStart={() => simulateKey('d', 'keydown')}
+                  onTouchEnd={() => simulateKey('d', 'keyup')}
+                  onMouseDown={() => simulateKey('d', 'keydown')}
+                  onMouseUp={() => simulateKey('d', 'keyup')}
+                >
+                  ▶
+                </button>
+              </div>
+            )}
+
             <div className="game-instructions">
-              <h3 className="instructions-title">🌿 Explora y conoce sobre los humedales </h3>
+              <h3 className="instructions-title">🌿 Explora el humedal</h3>
               <p className="instructions-text">
-                Camina y aprende sobre la importancia de conservar estos ecosistemas.
+                Completa los 2 minijuegos (Compostera y Quiz) para registrar tu tiempo en el ranking.
               </p>
             </div>
+
+            {completedGames.length > 0 && (
+              <div className="progress-indicator">
+                ✅ Minijuegos completados: {completedGames.length} / 2
+              </div>
+            )}
 
             <div className="iframe-wrapper">
               <iframe
@@ -313,7 +578,7 @@ export default function Game({ user }) {
             </div>
 
             <p className="game-tip">
-              💡 Haz clic en el juego para activar los controles. WASD para moverte, mouse para girar y la tecla E para interactuar.
+              💡 Haz clic en el juego para activar. WASD para moverte, mouse para girar, E para interactuar, C para centrar cursor, R para reiniciar escena.
             </p>
           </div>
         )}
