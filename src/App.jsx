@@ -59,7 +59,7 @@ function App() {
       <Hero user={user} setUser={setUser} />
       <Game user={user} />
       <Resources />
-      <Ranking />
+      <Ranking user={user} />
     </div>
   )
 }

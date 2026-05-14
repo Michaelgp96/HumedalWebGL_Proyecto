@@ -4,19 +4,18 @@ import { supabase } from '../supabaseClient';
 export default function Game({ user }) {
   const IMAGEN_HUMEDAL = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=2000"
   
-  // Estados
   const [startTime, setStartTime] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [completedGames, setCompletedGames] = useState([]);
 
-  // Inicializar timer y receptor de puntajes
   useEffect(() => {
-    // Iniciar timer
     const initTime = Date.now();
     setStartTime(initTime);
     
-    // Definir función receptora INMEDIATAMENTE (antes de que Unity cargue)
-    window.recibirPuntajeUnity = async (mensaje) => {
+    const handleMessage = async (event) => {
+      if (!event.data || event.data.type !== 'unity_score') return;
+      
+      const mensaje = event.data.data;
       console.log('🎮 Puntaje recibido de Unity:', mensaje);
       
       if (!user) {
@@ -30,15 +29,18 @@ export default function Game({ user }) {
         
         console.log(`✅ Procesando: ${minijuego} = ${score} puntos`);
         
-        // Agregar a completados
         setCompletedGames(prev => {
+          // Evitar duplicados
+          if (prev.some(g => g.minigame === minijuego)) {
+            console.log(`⚠️ ${minijuego} ya fue completado, ignorando`);
+            return prev;
+          }
+          
           const nuevosCompletados = [...prev, { minigame: minijuego, score: score }];
           
-          // Si completó ambos minijuegos
           if (nuevosCompletados.length === 2) {
             const tiempoTotal = Math.floor((Date.now() - initTime) / 1000);
             
-            // Guardar en Supabase
             (async () => {
               try {
                 for (const juego of nuevosCompletados) {
@@ -61,14 +63,14 @@ export default function Game({ user }) {
                 
                 const mins = Math.floor(tiempoTotal / 60);
                 const secs = tiempoTotal % 60;
-                alert(`🎉 ¡Recorrido completo!\n\nTiempo total: ${mins}m ${secs}s\n\nRevisa el Ranking!`);
+                alert(`🎉 ¡Recorrido completo!\n\nTiempo total: ${mins}m ${secs}s\n\n¡Revisa el Ranking!`);
               } catch (err) {
                 console.error('❌ Error guardando:', err);
                 alert('Error al guardar puntajes. Revisa la consola.');
               }
             })();
           } else {
-            alert(`✅ ${minijuego} completado: ${score} puntos\n\nCompleta el otro minijuego!`);
+            alert(`✅ ${minijuego} completado: ${score} puntos\n\n¡Completa el otro minijuego!`);
           }
           
           return nuevosCompletados;
@@ -78,18 +80,18 @@ export default function Game({ user }) {
       }
     };
     
-    // Actualizar timer cada segundo
+    window.addEventListener('message', handleMessage);
+    
     const interval = setInterval(() => {
       setElapsedTime(Date.now() - initTime);
     }, 1000);
     
     return () => {
       clearInterval(interval);
-      delete window.recibirPuntajeUnity;
+      window.removeEventListener('message', handleMessage);
     };
-  }, [user]); // Solo depende de user
+  }, [user]);
 
-  // Formatear tiempo
   const formatTime = (ms) => {
     const totalSeconds = Math.floor(ms / 1000);
     const mins = Math.floor(totalSeconds / 60);
@@ -124,10 +126,7 @@ export default function Game({ user }) {
         .game-hero::before {
           content: '';
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          top: 0; left: 0; right: 0; bottom: 0;
           background: linear-gradient(135deg, rgba(27,94,32,0.85) 0%, rgba(46,125,50,0.75) 100%);
         }
 
@@ -211,7 +210,6 @@ export default function Game({ user }) {
           position: relative;
         }
 
-        /* Timer en esquina */
         .game-timer {
           position: fixed;
           top: 100px;
@@ -271,8 +269,7 @@ export default function Game({ user }) {
 
         .game-iframe {
           position: absolute;
-          top: 0;
-          left: 0;
+          top: 0; left: 0;
           width: 100%;
           height: 100%;
           border: none;
@@ -346,33 +343,12 @@ export default function Game({ user }) {
         }
 
         @media (max-width: 768px) {
-          .game-hero {
-            min-height: 50vh;
-          }
-
-          .hero-content {
-            padding: 40px 20px;
-          }
-
-          .wetland-facts {
-            grid-template-columns: 1fr;
-            gap: 12px;
-          }
-
-          .game-container {
-            padding: 40px 16px;
-          }
-
-          .game-timer {
-            top: 80px;
-            left: 12px;
-            font-size: 16px;
-            padding: 10px 16px;
-          }
-
-          .gate-card {
-            padding: 36px 24px;
-          }
+          .game-hero { min-height: 50vh; }
+          .hero-content { padding: 40px 20px; }
+          .wetland-facts { grid-template-columns: 1fr; gap: 12px; }
+          .game-container { padding: 40px 16px; }
+          .game-timer { top: 80px; left: 12px; font-size: 16px; padding: 10px 16px; }
+          .gate-card { padding: 36px 24px; }
         }
       `}</style>
 
@@ -418,7 +394,6 @@ export default function Game({ user }) {
           </div>
         ) : (
           <div className="game-container">
-            {/* Timer */}
             <div className="game-timer">
               ⏱️ {formatTime(elapsedTime)}
             </div>
@@ -438,7 +413,7 @@ export default function Game({ user }) {
 
             <div className="iframe-wrapper">
               <iframe
-                src="https://itch.io/embed-upload/17498501?color=333333"
+                src="https://itch.io/embed-upload/17533401?color=333333"
                 className="game-iframe"
                 allowFullScreen
                 allow="autoplay; fullscreen *; pointer-lock *; encrypted-media;"
@@ -446,7 +421,7 @@ export default function Game({ user }) {
             </div>
 
             <p className="game-tip">
-              💡 Haz clic en el juego para activar. WASD para moverte, mouse para girar, E para interactuar, C para centrar cursor, R para reiniciar escena.
+              💡 WASD para moverte, mouse para girar, click para agarrar, E para soltar/interactuar, C para modo exploración, R para reiniciar.
             </p>
           </div>
         )}
