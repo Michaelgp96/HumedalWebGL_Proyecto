@@ -345,7 +345,7 @@ export default function Ranking({ user }) {
             <span className="ranking-icon">🏆</span>
             <h2 className="ranking-title">Ranking de Guardianes</h2>
             <p className="ranking-subtitle">
-              Los mejores exploradores del Humedal de Techo
+              Los mejores exploradores del Humedal
             </p>
             <button className="refresh-btn" onClick={fetchRanking}>
               🔄 Actualizar
