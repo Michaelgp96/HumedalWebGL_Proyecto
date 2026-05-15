@@ -413,7 +413,7 @@ export default function Game({ user }) {
 
             <div className="iframe-wrapper">
               <iframe
-                src="https://itch.io/embed-upload/17538228?color=333333"
+                src="https://itch.io/embed-upload/17544547?color=333333"
                 className="game-iframe"
                 allowFullScreen
                 allow="autoplay; fullscreen *; pointer-lock *; encrypted-media;"
